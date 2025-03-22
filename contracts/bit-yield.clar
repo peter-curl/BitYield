@@ -63,3 +63,42 @@
 (define-map whitelisted-tokens 
     { token: principal } 
     { approved: bool })
+
+;; SIP-010 Token Interface
+(define-trait sip-010-trait
+    (
+        (transfer (uint principal principal (optional (buff 34))) (response bool uint))
+        (get-balance (principal) (response uint uint))
+        (get-decimals () (response uint uint))
+        (get-name () (response (string-ascii 32) uint))
+        (get-symbol () (response (string-ascii 32) uint))
+        (get-total-supply () (response uint uint))
+    )
+)
+
+;; Authorization Check
+(define-private (is-contract-owner)
+    (is-eq tx-sender contract-owner)
+)
+
+;; Validation Functions
+(define-private (is-valid-protocol-id (protocol-id uint))
+    (and 
+        (> protocol-id u0)
+        (<= protocol-id MAX-PROTOCOL-ID)
+    )
+)
+
+(define-private (is-valid-apy (apy uint))
+    (and 
+        (>= apy MIN-APY)
+        (<= apy MAX-APY)
+    )
+)
+
+(define-private (is-valid-name (name (string-ascii 64)))
+    (and 
+        (not (is-eq name ""))
+        (<= (len name) u64)
+    )
+)
