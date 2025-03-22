@@ -194,7 +194,7 @@
             { user: user-principal }
             { 
                 amount: (+ amount (get amount current-deposit)),
-                last-deposit-block: block-height
+                last-deposit-block: stacks-block-height
             })
         
         ;; Update TVL
@@ -260,7 +260,7 @@
     (let
         (
             (user-principal tx-sender)
-            (rewards (calculate-rewards user-principal (- block-height 
+            (rewards (calculate-rewards user-principal (- stacks-block-height 
                 (get last-deposit-block (unwrap-panic (get-user-deposit user-principal))))))
         )
         (try! (validate-token token-trait))
