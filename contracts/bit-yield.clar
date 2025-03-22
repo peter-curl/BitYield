@@ -287,3 +287,41 @@
         (ok rewards)
     )
 )
+
+;; Protocol Management and Optimization
+(define-private (rebalance-protocols)
+    (let
+        (
+            (total-allocations (fold + (map get-protocol-allocation (get-protocol-list)) u0))
+        )
+        (asserts! (<= total-allocations u10000) ERR-INVALID-AMOUNT)
+        (ok true)
+    )
+)
+
+(define-private (get-weighted-apy)
+    (fold + (map get-weighted-protocol-apy (get-protocol-list)) u0)
+)
+
+(define-private (get-weighted-protocol-apy (protocol-id uint))
+    (let
+        (
+            (protocol (unwrap-panic (get-protocol protocol-id)))
+            (allocation (get allocation (unwrap-panic 
+                (map-get? strategy-allocations { protocol-id: protocol-id }))))
+        )
+        (if (get active protocol)
+            (/ (* (get apy protocol) allocation) u10000)
+            u0
+        )
+    )
+)
+
+;; Getter Functions
+(define-read-only (get-protocol (protocol-id uint))
+    (map-get? protocols { protocol-id: protocol-id })
+)
+
+(define-read-only (get-user-deposit (user principal))
+    (map-get? user-deposits { user: user })
+)
