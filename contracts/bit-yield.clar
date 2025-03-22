@@ -205,3 +205,41 @@
         (ok true)
     )
 )
+
+(define-public (withdraw (token-trait <sip-010-trait>) (amount uint))
+    (let
+        (
+            (user-principal tx-sender)
+            (current-deposit (default-to { amount: u0, last-deposit-block: u0 }
+                (map-get? user-deposits { user: user-principal })))
+        )
+        ;; Validate token and check withdrawal constraints
+        (try! (validate-token token-trait))
+        (asserts! (<= amount (get amount current-deposit)) ERR-INSUFFICIENT-BALANCE)
+        
+        ;; Update user deposits
+        (map-set user-deposits
+            { user: user-principal }
+            {
+                amount: (- (get amount current-deposit) amount),
+                last-deposit-block: (get last-deposit-block current-deposit)
+            })
+        
+        ;; Update TVL
+        (var-set total-tvl (- (var-get total-tvl) amount))
+        
+        ;; Safely transfer tokens back to user
+        (as-contract
+            (try! (safe-token-transfer token-trait amount tx-sender user-principal)))
+        
+        (ok true)
+    )
+)
+
+;; Safe Token Transfer
+(define-private (safe-token-transfer (token-trait <sip-010-trait>) (amount uint) (sender principal) (recipient principal))
+    (begin
+        (try! (validate-token token-trait))
+        (contract-call? token-trait transfer amount sender recipient none)
+    )
+)
