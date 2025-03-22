@@ -243,3 +243,47 @@
         (contract-call? token-trait transfer amount sender recipient none)
     )
 )
+
+;; Yield Distribution and Rewards
+(define-private (calculate-rewards (user principal) (blocks uint))
+    (let
+        (
+            (user-deposit (unwrap-panic (get-user-deposit user)))
+            (weighted-apy (get-weighted-apy))
+        )
+        ;; APY calculation based on blocks passed
+        (/ (* (get amount user-deposit) weighted-apy blocks) (* u10000 u144 u365))
+    )
+)
+
+(define-public (claim-rewards (token-trait <sip-010-trait>))
+    (let
+        (
+            (user-principal tx-sender)
+            (rewards (calculate-rewards user-principal (- block-height 
+                (get last-deposit-block (unwrap-panic (get-user-deposit user-principal))))))
+        )
+        (try! (validate-token token-trait))
+        (asserts! (> rewards u0) ERR-INVALID-AMOUNT)
+        
+        ;; Update rewards map
+        (map-set user-rewards
+            { user: user-principal }
+            {
+                pending: u0,
+                claimed: (+ rewards 
+                    (get claimed (default-to { pending: u0, claimed: u0 }
+                        (map-get? user-rewards { user: user-principal }))))
+            })
+        
+        ;; Transfer rewards
+        (as-contract
+            (try! (contract-call? token-trait transfer
+                rewards
+                tx-sender
+                user-principal
+                none)))
+        
+        (ok rewards)
+    )
+)
